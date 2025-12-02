@@ -150,762 +150,743 @@
         </div>
     </div>
 
-    <script>
-        // State management
-        let activeView = 'front';
-        let tshirtSize = 100;
-        let tshirtColor = '#3b82f6';
-        
-        // Front view state
-        let frontLogo = null;
-        let frontLogoWidth = 150;
-        let frontLogoHeight = 150;
-        let frontLogoX = 200;
-        let frontLogoY = 200;
-        let frontText = '';
-        let frontFontSize = 40;
-        let frontTextColor = '#ffffff';
-        let frontFontStyle = 'Arial';
-        let frontTextX = 200;
-        let frontTextY = 300;
-        
-        // Back view state
-        let backLogo = null;
-        let backLogoWidth = 150;
-        let backLogoHeight = 150;
-        let backLogoX = 200;
-        let backLogoY = 200;
-        let backText = '';
-        let backFontSize = 40;
-        let backTextColor = '#ffffff';
-        let backFontStyle = 'Arial';
-        let backTextX = 200;
-        let backTextY = 300;
-        
-        // Drag state
-        let isDragging = false;
-        let isResizing = false;
-        let dragTarget = null; // 'logo' or 'text'
-        let resizeHandle = null; // 'nw', 'ne', 'sw', 'se' for corners
-        let dragOffsetX = 0;
-        let dragOffsetY = 0;
-        let resizeStartSize = 0;
-        let resizeStartX = 0;
-        let resizeStartY = 0;
-        
-        const frontCanvas = document.getElementById('frontCanvas');
-        const backCanvas = document.getElementById('backCanvas');
-        const frontCtx = frontCanvas.getContext('2d');
-        const backCtx = backCanvas.getContext('2d');
+   <script>
+    // State management
+    let activeView = 'front';
+    let tshirtSize = 100;
+    let tshirtColor = '#3b82f6';
+    
+    // Front view state
+    let frontLogo = null;
+    let frontLogoWidth = 150;
+    let frontLogoHeight = 150;
+    let frontLogoX = 200;
+    let frontLogoY = 200;
+    let frontText = '';
+    let frontFontSize = 40;
+    let frontTextColor = '#ffffff';
+    let frontFontStyle = 'Arial';
+    let frontTextX = 200;
+    let frontTextY = 300;
+    
+    // Back view state
+    let backLogo = null;
+    let backLogoWidth = 150;
+    let backLogoHeight = 150;
+    let backLogoX = 200;
+    let backLogoY = 200;
+    let backText = '';
+    let backFontSize = 40;
+    let backTextColor = '#ffffff';
+    let backFontStyle = 'Arial';
+    let backTextX = 200;
+    let backTextY = 300;
+    
+    // Drag / Resize state
+    let isDragging = false;
+    let isResizing = false;
+    let dragTarget = null; // 'logo' or 'text'
+    let resizeHandle = null; // 'nw','ne','sw','se','n','e','s','w'
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let resizeStartX = 0;
+    let resizeStartY = 0;
+    let startWidth = 0;
+    let startHeight = 0;
 
-        // Get current view state
-        function getCurrentState() {
-            if (activeView === 'front') {
-                return {
-                    logo: frontLogo,
-                    logoWidth: frontLogoWidth,
-                    logoHeight: frontLogoHeight,
-                    logoX: frontLogoX,
-                    logoY: frontLogoY,
-                    text: frontText,
-                    fontSize: frontFontSize,
-                    textColor: frontTextColor,
-                    fontStyle: frontFontStyle,
-                    textX: frontTextX,
-                    textY: frontTextY
-                };
-            } else {
-                return {
-                    logo: backLogo,
-                    logoWidth: backLogoWidth,
-                    logoHeight: backLogoHeight,
-                    logoX: backLogoX,
-                    logoY: backLogoY,
-                    text: backText,
-                    fontSize: backFontSize,
-                    textColor: backTextColor,
-                    fontStyle: backFontStyle,
-                    textX: backTextX,
-                    textY: backTextY
-                };
-            }
-        }
+    const frontCanvas = document.getElementById('frontCanvas');
+    const backCanvas = document.getElementById('backCanvas');
+    const frontCtx = frontCanvas.getContext('2d');
+    const backCtx = backCanvas.getContext('2d');
 
-        // Update current view state
-        function updateCurrentState(updates) {
-            if (activeView === 'front') {
-                if ('logoX' in updates) frontLogoX = updates.logoX;
-                if ('logoY' in updates) frontLogoY = updates.logoY;
-                if ('logoWidth' in updates) frontLogoWidth = updates.logoWidth;
-                if ('logoHeight' in updates) frontLogoHeight = updates.logoHeight;
-                if ('textX' in updates) frontTextX = updates.textX;
-                if ('textY' in updates) frontTextY = updates.textY;
-                if ('text' in updates) frontText = updates.text;
-                if ('fontSize' in updates) frontFontSize = updates.fontSize;
-                if ('textColor' in updates) frontTextColor = updates.textColor;
-                if ('fontStyle' in updates) frontFontStyle = updates.fontStyle;
-            } else {
-                if ('logoX' in updates) backLogoX = updates.logoX;
-                if ('logoY' in updates) backLogoY = updates.logoY;
-                if ('logoWidth' in updates) backLogoWidth = updates.logoWidth;
-                if ('logoHeight' in updates) backLogoHeight = updates.logoHeight;
-                if ('textX' in updates) backTextX = updates.textX;
-                if ('textY' in updates) backTextY = updates.textY;
-                if ('text' in updates) backText = updates.text;
-                if ('fontSize' in updates) backFontSize = updates.fontSize;
-                if ('textColor' in updates) backTextColor = updates.textColor;
-                if ('fontStyle' in updates) backFontStyle = updates.fontStyle;
-            }
-        }
-
-        // Draw ultra-realistic t-shirt
-        function drawTshirt(ctx, isBack, logoImg, logoWidth, logoHeight, logoX, logoY, text, fontSize, textColor, fontStyle, textX, textY) {
-            const scale = tshirtSize / 100;
-            ctx.save();
-            ctx.clearRect(0, 0, 400, 500);
-            
-            ctx.translate(200, 250);
-            ctx.scale(scale, scale);
-            ctx.translate(-200, -250);
-            
-            // Realistic drop shadow
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 10;
-            
-            // Main body - realistic proportions
-            ctx.fillStyle = tshirtColor;
-            ctx.beginPath();
-            
-            // Left shoulder seam
-            ctx.moveTo(90, 90);
-            ctx.lineTo(100, 65);
-            ctx.bezierCurveTo(120, 55, 160, 52, 200, 52);
-            // Right shoulder seam
-            ctx.bezierCurveTo(240, 52, 280, 55, 300, 65);
-            ctx.lineTo(310, 90);
-            
-            // Right armhole and side
-            ctx.bezierCurveTo(312, 105, 315, 125, 315, 145);
-            ctx.lineTo(313, 220);
-            ctx.bezierCurveTo(312, 280, 310, 340, 308, 400);
-            ctx.bezierCurveTo(307, 425, 305, 445, 300, 455);
-            
-            // Bottom hem - realistic curve
-            ctx.bezierCurveTo(295, 460, 280, 463, 260, 464);
-            ctx.lineTo(140, 464);
-            ctx.bezierCurveTo(120, 463, 105, 460, 100, 455);
-            
-            // Left side
-            ctx.bezierCurveTo(95, 445, 93, 425, 92, 400);
-            ctx.bezierCurveTo(90, 340, 88, 280, 87, 220);
-            ctx.lineTo(85, 145);
-            ctx.bezierCurveTo(85, 125, 88, 105, 90, 90);
-            
-            ctx.closePath();
-            ctx.fill();
-            
-            // Realistic fabric lighting - multiple layers
-            ctx.shadowColor = 'transparent';
-            
-            // Center highlight
-            const centerLight = ctx.createRadialGradient(200, 180, 0, 200, 180, 150);
-            centerLight.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
-            centerLight.addColorStop(0.6, 'rgba(255, 255, 255, 0)');
-            ctx.fillStyle = centerLight;
-            ctx.fill();
-            
-            // Top to bottom gradient
-            const verticalGrad = ctx.createLinearGradient(200, 52, 200, 464);
-            verticalGrad.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
-            verticalGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0)');
-            verticalGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
-            verticalGrad.addColorStop(1, 'rgba(0, 0, 0, 0.12)');
-            ctx.fillStyle = verticalGrad;
-            ctx.fill();
-            
-            // Side shadows for depth
-            const leftShadow = ctx.createLinearGradient(85, 200, 120, 200);
-            leftShadow.addColorStop(0, 'rgba(0, 0, 0, 0.18)');
-            leftShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = leftShadow;
-            ctx.fillRect(85, 145, 30, 300);
-            
-            const rightShadow = ctx.createLinearGradient(315, 200, 280, 200);
-            rightShadow.addColorStop(0, 'rgba(0, 0, 0, 0.18)');
-            rightShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = rightShadow;
-            ctx.fillRect(285, 145, 30, 300);
-            
-            // Subtle wrinkles/fabric texture
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.03)';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < 8; i++) {
-                ctx.beginPath();
-                const y = 150 + i * 40;
-                ctx.moveTo(110, y);
-                ctx.bezierCurveTo(150, y + 3, 250, y - 3, 290, y);
-                ctx.stroke();
-            }
-            
-            // Main outline - softer
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            ctx.stroke();
-            
-            // Shoulder seam lines
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(100, 65);
-            ctx.bezierCurveTo(120, 55, 160, 52, 200, 52);
-            ctx.bezierCurveTo(240, 52, 280, 55, 300, 65);
-            ctx.stroke();
-            
-            // Hem stitching
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([5, 3]);
-            ctx.beginPath();
-            ctx.moveTo(140, 456);
-            ctx.lineTo(260, 456);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // Left sleeve - realistic fit
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetX = -2;
-            ctx.shadowOffsetY = 8;
-            
-            ctx.fillStyle = tshirtColor;
-            ctx.beginPath();
-            ctx.moveTo(90, 90);
-            ctx.lineTo(100, 65);
-            ctx.bezierCurveTo(85, 70, 65, 85, 50, 105);
-            ctx.bezierCurveTo(42, 120, 40, 135, 43, 148);
-            ctx.bezierCurveTo(46, 158, 55, 163, 68, 162);
-            ctx.lineTo(85, 155);
-            ctx.bezierCurveTo(87, 145, 88, 130, 90, 115);
-            ctx.closePath();
-            ctx.fill();
-            
-            // Sleeve lighting
-            ctx.shadowColor = 'transparent';
-            const sleeveLightL = ctx.createRadialGradient(65, 115, 5, 65, 115, 50);
-            sleeveLightL.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
-            sleeveLightL.addColorStop(0.7, 'rgba(255, 255, 255, 0)');
-            sleeveLightL.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
-            ctx.fillStyle = sleeveLightL;
-            ctx.fill();
-            
-            // Sleeve outline
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            // Sleeve hem
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([4, 2]);
-            ctx.beginPath();
-            ctx.arc(56, 155, 13, -0.5, 1);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // Right sleeve - realistic fit
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 8;
-            
-            ctx.fillStyle = tshirtColor;
-            ctx.beginPath();
-            ctx.moveTo(310, 90);
-            ctx.lineTo(300, 65);
-            ctx.bezierCurveTo(315, 70, 335, 85, 350, 105);
-            ctx.bezierCurveTo(358, 120, 360, 135, 357, 148);
-            ctx.bezierCurveTo(354, 158, 345, 163, 332, 162);
-            ctx.lineTo(315, 155);
-            ctx.bezierCurveTo(313, 145, 312, 130, 310, 115);
-            ctx.closePath();
-            ctx.fill();
-            
-            // Sleeve lighting
-            ctx.shadowColor = 'transparent';
-            const sleeveLightR = ctx.createRadialGradient(335, 115, 5, 335, 115, 50);
-            sleeveLightR.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
-            sleeveLightR.addColorStop(0.7, 'rgba(255, 255, 255, 0)');
-            sleeveLightR.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
-            ctx.fillStyle = sleeveLightR;
-            ctx.fill();
-            
-            // Sleeve outline
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            // Sleeve hem
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([4, 2]);
-            ctx.beginPath();
-            ctx.arc(344, 155, 13, 2.1, 3.6);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // Neckline (front only)
-            if (!isBack) {
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-                ctx.shadowBlur = 8;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 3;
-                
-                // Ribbed crew neck
-                ctx.fillStyle = tshirtColor;
-                ctx.beginPath();
-                ctx.ellipse(200, 52, 35, 12, 0, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Darker neck shadow
-                ctx.shadowColor = 'transparent';
-                const neckShadow = ctx.createRadialGradient(200, 52, 0, 200, 52, 35);
-                neckShadow.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-                neckShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                ctx.fillStyle = neckShadow;
-                ctx.fill();
-                
-                // Neck outline
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                
-                // Ribbed texture
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
-                ctx.lineWidth = 1;
-                for (let i = 0; i < 5; i++) {
-                    ctx.beginPath();
-                    const offset = -15 + i * 8;
-                    ctx.arc(200, 52, Math.abs(offset) + 8, 0.3, Math.PI - 0.3);
-                    ctx.stroke();
-                }
-                
-                // Inner neck opening
-                ctx.fillStyle = '#1a1a1a';
-                ctx.beginPath();
-                ctx.ellipse(200, 54, 28, 8, 0, 0, Math.PI);
-                ctx.fill();
-            } else {
-                // Back neck - realistic crew neck back
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-                ctx.shadowBlur = 6;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 2;
-                
-                // Back collar band
-                ctx.fillStyle = tshirtColor;
-                ctx.beginPath();
-                ctx.moveTo(165, 52);
-                ctx.bezierCurveTo(175, 58, 185, 62, 200, 62);
-                ctx.bezierCurveTo(215, 62, 225, 58, 235, 52);
-                ctx.bezierCurveTo(225, 50, 215, 48, 200, 48);
-                ctx.bezierCurveTo(185, 48, 175, 50, 165, 52);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Back neck shadow for depth
-                ctx.shadowColor = 'transparent';
-                const backNeckShadow = ctx.createLinearGradient(200, 48, 200, 62);
-                backNeckShadow.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
-                backNeckShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                ctx.fillStyle = backNeckShadow;
-                ctx.fill();
-                
-                // Collar outline
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                
-                // Ribbed collar texture on back
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
-                ctx.lineWidth = 1;
-                for (let i = 0; i < 3; i++) {
-                    ctx.beginPath();
-                    const yPos = 52 + i * 4;
-                    ctx.moveTo(170, yPos);
-                    ctx.bezierCurveTo(185, yPos + 2, 215, yPos + 2, 230, yPos);
-                    ctx.stroke();
-                }
-                
-                // Center back seam/tag area indication
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-                ctx.lineWidth = 1;
-                ctx.setLineDash([2, 2]);
-                ctx.beginPath();
-                ctx.moveTo(200, 62);
-                ctx.lineTo(200, 85);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                
-                // Small tag outline suggestion
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
-                ctx.fillRect(195, 68, 10, 15);
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-                ctx.lineWidth = 0.5;
-                ctx.strokeRect(195, 68, 10, 15);
-            }
-            
-            // Add realistic back features if it's the back view
-            if (isBack) {
-                // Center back vertical highlight
-                const backHighlight = ctx.createLinearGradient(195, 100, 205, 100);
-                backHighlight.addColorStop(0, 'rgba(255, 255, 255, 0)');
-                backHighlight.addColorStop(0.5, 'rgba(255, 255, 255, 0.12)');
-                backHighlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                ctx.fillStyle = backHighlight;
-                ctx.fillRect(195, 100, 10, 350);
-                
-                // Shoulder blade area shadows for realism
-                const shoulderBladeL = ctx.createRadialGradient(150, 150, 0, 150, 150, 50);
-                shoulderBladeL.addColorStop(0, 'rgba(0, 0, 0, 0.05)');
-                shoulderBladeL.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                ctx.fillStyle = shoulderBladeL;
-                ctx.beginPath();
-                ctx.ellipse(150, 150, 35, 45, -0.2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                const shoulderBladeR = ctx.createRadialGradient(250, 150, 0, 250, 150, 50);
-                shoulderBladeR.addColorStop(0, 'rgba(0, 0, 0, 0.05)');
-                shoulderBladeR.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                ctx.fillStyle = shoulderBladeR;
-                ctx.beginPath();
-                ctx.ellipse(250, 150, 35, 45, 0.2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Lower back curve shadow
-                const lowerBackShadow = ctx.createRadialGradient(200, 380, 0, 200, 380, 80);
-                lowerBackShadow.addColorStop(0, 'rgba(0, 0, 0, 0.06)');
-                lowerBackShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                ctx.fillStyle = lowerBackShadow;
-                ctx.beginPath();
-                ctx.ellipse(200, 380, 60, 50, 0, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            ctx.shadowColor = 'transparent';
-
-            // Logo with drag and resize handles
-            if (logoImg) {
-                const logoW = logoWidth;
-                const logoH = logoHeight;
-                const logoXPos = logoX - logoW / 2;
-                const logoYPos = logoY - logoH / 2;
-                
-                // Draw logo
-                ctx.drawImage(logoImg, logoXPos, logoYPos, logoW, logoH);
-                
-                // Draw selection box and resize handles if this is active view
-                if ((activeView === 'front' && !isBack) || (activeView === 'back' && isBack)) {
-                    // Selection box
-                    ctx.strokeStyle = '#8b5cf6';
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([5, 5]);
-                    ctx.strokeRect(logoXPos, logoYPos, logoW, logoH);
-                    ctx.setLineDash([]);
-                    
-                    ctx.fillStyle = '#8b5cf6';
-                    const handleSize = 10;
-                    
-                    // Corner handles
-                    ctx.fillRect(logoXPos - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize);
-                    ctx.fillRect(logoXPos + logoW - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize);
-                    ctx.fillRect(logoXPos - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize);
-                    ctx.fillRect(logoXPos + logoW - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize);
-                    
-                    // Edge handles (top, right, bottom, left)
-                    ctx.fillRect(logoXPos + logoW/2 - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize); // top
-                    ctx.fillRect(logoXPos + logoW - handleSize/2, logoYPos + logoH/2 - handleSize/2, handleSize, handleSize); // right
-                    ctx.fillRect(logoXPos + logoW/2 - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize); // bottom
-                    ctx.fillRect(logoXPos - handleSize/2, logoYPos + logoH/2 - handleSize/2, handleSize, handleSize); // left
-                    
-                    // Handle outlines for better visibility
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 1;
-                    // Corners
-                    ctx.strokeRect(logoXPos - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize);
-                    ctx.strokeRect(logoXPos + logoW - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize);
-                    ctx.strokeRect(logoXPos - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize);
-                    ctx.strokeRect(logoXPos + logoW - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize);
-                    // Edges
-                    ctx.strokeRect(logoXPos + logoW/2 - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize);
-                    ctx.strokeRect(logoXPos + logoW - handleSize/2, logoYPos + logoH/2 - handleSize/2, handleSize, handleSize);
-                    ctx.strokeRect(logoXPos + logoW/2 - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize);
-                    ctx.strokeRect(logoXPos - handleSize/2, logoYPos + logoH/2 - handleSize/2, handleSize, handleSize);
-                }
-            }
-
-            // Text with drag handles
-            if (text) {
-                ctx.font = `bold ${fontSize}px ${fontStyle}`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
-                const textMetrics = ctx.measureText(text);
-                const textWidth = textMetrics.width;
-                const textHeight = fontSize;
-                
-                // Draw text outline and fill
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 3;
-                ctx.strokeText(text, textX, textY);
-                ctx.fillStyle = textColor;
-                ctx.fillText(text, textX, textY);
-                
-                // Draw selection box if this is active view
-                if ((activeView === 'front' && !isBack) || (activeView === 'back' && isBack)) {
-                    ctx.strokeStyle = '#10b981';
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([5, 5]);
-                    ctx.strokeRect(textX - textWidth/2 - 10, textY - textHeight/2 - 5, textWidth + 20, textHeight + 10);
-                    ctx.setLineDash([]);
-                    
-                    // Corner handles
-                    ctx.fillStyle = '#10b981';
-                    const handleSize = 8;
-                    ctx.fillRect(textX - textWidth/2 - 10 - handleSize/2, textY - textHeight/2 - 5 - handleSize/2, handleSize, handleSize);
-                    ctx.fillRect(textX + textWidth/2 + 10 - handleSize/2, textY - textHeight/2 - 5 - handleSize/2, handleSize, handleSize);
-                }
-            }
-            
-            ctx.restore();
-        }
-
-        function redrawAll() {
-            drawTshirt(frontCtx, false, frontLogo, frontLogoWidth, frontLogoHeight, frontLogoX, frontLogoY, 
-                      frontText, frontFontSize, frontTextColor, frontFontStyle, frontTextX, frontTextY);
-            drawTshirt(backCtx, true, backLogo, backLogoWidth, backLogoHeight, backLogoX, backLogoY, 
-                      backText, backFontSize, backTextColor, backFontStyle, backTextX, backTextY);
-        }
-
-        redrawAll();
-
-        // Get mouse position relative to canvas
-        function getMousePos(canvas, evt) {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
+    // Helper: get current state's view object
+    function getCurrentState() {
+        if (activeView === 'front') {
             return {
-                x: (evt.clientX - rect.left) * scaleX,
-                y: (evt.clientY - rect.top) * scaleY
+                logo: frontLogo,
+                logoWidth: frontLogoWidth,
+                logoHeight: frontLogoHeight,
+                logoX: frontLogoX,
+                logoY: frontLogoY,
+                text: frontText,
+                fontSize: frontFontSize,
+                textColor: frontTextColor,
+                fontStyle: frontFontStyle,
+                textX: frontTextX,
+                textY: frontTextY
+            };
+        } else {
+            return {
+                logo: backLogo,
+                logoWidth: backLogoWidth,
+                logoHeight: backLogoHeight,
+                logoX: backLogoX,
+                logoY: backLogoY,
+                text: backText,
+                fontSize: backFontSize,
+                textColor: backTextColor,
+                fontStyle: backFontStyle,
+                textX: backTextX,
+                textY: backTextY
             };
         }
+    }
 
-        // Check if mouse is over logo, text, or resize handles
-        function checkHitTest(mouseX, mouseY) {
-            const state = getCurrentState();
-            const scale = tshirtSize / 100;
+    // Update current view state properties (only those present in updates)
+    function updateCurrentState(updates) {
+        if (activeView === 'front') {
+            if ('logoX' in updates) frontLogoX = updates.logoX;
+            if ('logoY' in updates) frontLogoY = updates.logoY;
+            if ('logoWidth' in updates) frontLogoWidth = updates.logoWidth;
+            if ('logoHeight' in updates) frontLogoHeight = updates.logoHeight;
+            if ('textX' in updates) frontTextX = updates.textX;
+            if ('textY' in updates) frontTextY = updates.textY;
+            if ('text' in updates) frontText = updates.text;
+            if ('fontSize' in updates) frontFontSize = updates.fontSize;
+            if ('textColor' in updates) frontTextColor = updates.textColor;
+            if ('fontStyle' in updates) frontFontStyle = updates.fontStyle;
+        } else {
+            if ('logoX' in updates) backLogoX = updates.logoX;
+            if ('logoY' in updates) backLogoY = updates.logoY;
+            if ('logoWidth' in updates) backLogoWidth = updates.logoWidth;
+            if ('logoHeight' in updates) backLogoHeight = updates.logoHeight;
+            if ('textX' in updates) backTextX = updates.textX;
+            if ('textY' in updates) backTextY = updates.textY;
+            if ('text' in updates) backText = updates.text;
+            if ('fontSize' in updates) backFontSize = updates.fontSize;
+            if ('textColor' in updates) backTextColor = updates.textColor;
+            if ('fontStyle' in updates) backFontStyle = updates.fontStyle;
+        }
+    }
+
+    // Draw ultra-realistic t-shirt (kept your design)
+    function drawTshirt(ctx, isBack, logoImg, logoWidth, logoHeight, logoX, logoY, text, fontSize, textColor, fontStyle, textX, textY) {
+        const scale = tshirtSize / 100;
+        ctx.save();
+        ctx.clearRect(0, 0, 400, 500);
+        
+        ctx.translate(200, 250);
+        ctx.scale(scale, scale);
+        ctx.translate(-200, -250);
+        
+        // Realistic drop shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 10;
+        
+        // Main body - realistic proportions
+        ctx.fillStyle = tshirtColor;
+        ctx.beginPath();
+        
+        // Left shoulder seam
+        ctx.moveTo(90, 90);
+        ctx.lineTo(100, 65);
+        ctx.bezierCurveTo(120, 55, 160, 52, 200, 52);
+        // Right shoulder seam
+        ctx.bezierCurveTo(240, 52, 280, 55, 300, 65);
+        ctx.lineTo(310, 90);
+        
+        // Right armhole and side
+        ctx.bezierCurveTo(312, 105, 315, 125, 315, 145);
+        ctx.lineTo(313, 220);
+        ctx.bezierCurveTo(312, 280, 310, 340, 308, 400);
+        ctx.bezierCurveTo(307, 425, 305, 445, 300, 455);
+        
+        // Bottom hem - realistic curve
+        ctx.bezierCurveTo(295, 460, 280, 463, 260, 464);
+        ctx.lineTo(140, 464);
+        ctx.bezierCurveTo(120, 463, 105, 460, 100, 455);
+        
+        // Left side
+        ctx.bezierCurveTo(95, 445, 93, 425, 92, 400);
+        ctx.bezierCurveTo(90, 340, 88, 280, 87, 220);
+        ctx.lineTo(85, 145);
+        ctx.bezierCurveTo(85, 125, 88, 105, 90, 90);
+        
+        ctx.closePath();
+        ctx.fill();
+        
+        // Realistic fabric lighting - multiple layers
+        ctx.shadowColor = 'transparent';
+        
+        // Center highlight
+        const centerLight = ctx.createRadialGradient(200, 180, 0, 200, 180, 150);
+        centerLight.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+        centerLight.addColorStop(0.6, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = centerLight;
+        ctx.fill();
+        
+        // Top to bottom gradient
+        const verticalGrad = ctx.createLinearGradient(200, 52, 200, 464);
+        verticalGrad.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+        verticalGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0)');
+        verticalGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
+        verticalGrad.addColorStop(1, 'rgba(0, 0, 0, 0.12)');
+        ctx.fillStyle = verticalGrad;
+        ctx.fill();
+        
+        // Side shadows for depth
+        const leftShadow = ctx.createLinearGradient(85, 200, 120, 200);
+        leftShadow.addColorStop(0, 'rgba(0, 0, 0, 0.18)');
+        leftShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = leftShadow;
+        ctx.fillRect(85, 145, 30, 300);
+        
+        const rightShadow = ctx.createLinearGradient(315, 200, 280, 200);
+        rightShadow.addColorStop(0, 'rgba(0, 0, 0, 0.18)');
+        rightShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = rightShadow;
+        ctx.fillRect(285, 145, 30, 300);
+        
+        // Subtle wrinkles/fabric texture
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.03)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 8; i++) {
+            ctx.beginPath();
+            const y = 150 + i * 40;
+            ctx.moveTo(110, y);
+            ctx.bezierCurveTo(150, y + 3, 250, y - 3, 290, y);
+            ctx.stroke();
+        }
+        
+        // Main outline - softer
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        // Shoulder seam lines
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(100, 65);
+        ctx.bezierCurveTo(120, 55, 160, 52, 200, 52);
+        ctx.bezierCurveTo(240, 52, 280, 55, 300, 65);
+        ctx.stroke();
+        
+        // Hem stitching
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(140, 456);
+        ctx.lineTo(260, 456);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Left sleeve - realistic fit
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = -2;
+        ctx.shadowOffsetY = 8;
+        
+        ctx.fillStyle = tshirtColor;
+        ctx.beginPath();
+        ctx.moveTo(90, 90);
+        ctx.lineTo(100, 65);
+        ctx.bezierCurveTo(85, 70, 65, 85, 50, 105);
+        ctx.bezierCurveTo(42, 120, 40, 135, 43, 148);
+        ctx.bezierCurveTo(46, 158, 55, 163, 68, 162);
+        ctx.lineTo(85, 155);
+        ctx.bezierCurveTo(87, 145, 88, 130, 90, 115);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Sleeve lighting
+        ctx.shadowColor = 'transparent';
+        const sleeveLightL = ctx.createRadialGradient(65, 115, 5, 65, 115, 50);
+        sleeveLightL.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        sleeveLightL.addColorStop(0.7, 'rgba(255, 255, 255, 0)');
+        sleeveLightL.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
+        ctx.fillStyle = sleeveLightL;
+        ctx.fill();
+        
+        // Sleeve outline
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Sleeve hem
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 2]);
+        ctx.beginPath();
+        ctx.arc(56, 155, 13, -0.5, 1);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Right sleeve - realistic fit
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 8;
+        
+        ctx.fillStyle = tshirtColor;
+        ctx.beginPath();
+        ctx.moveTo(310, 90);
+        ctx.lineTo(300, 65);
+        ctx.bezierCurveTo(315, 70, 335, 85, 350, 105);
+        ctx.bezierCurveTo(358, 120, 360, 135, 357, 148);
+        ctx.bezierCurveTo(354, 158, 345, 163, 332, 162);
+        ctx.lineTo(315, 155);
+        ctx.bezierCurveTo(313, 145, 312, 130, 310, 115);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Sleeve lighting
+        ctx.shadowColor = 'transparent';
+        const sleeveLightR = ctx.createRadialGradient(335, 115, 5, 335, 115, 50);
+        sleeveLightR.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        sleeveLightR.addColorStop(0.7, 'rgba(255, 255, 255, 0)');
+        sleeveLightR.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
+        ctx.fillStyle = sleeveLightR;
+        ctx.fill();
+        
+        // Sleeve outline
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Sleeve hem
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 2]);
+        ctx.beginPath();
+        ctx.arc(344, 155, 13, 2.1, 3.6);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Neckline (front only)
+        if (!isBack) {
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 3;
             
-            // Transform mouse coordinates to match canvas transform
-            const transformedX = (mouseX - 200) / scale + 200;
-            const transformedY = (mouseY - 250) / scale + 250;
+            // Ribbed crew neck
+            ctx.fillStyle = tshirtColor;
+            ctx.beginPath();
+            ctx.ellipse(200, 52, 35, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
             
-            // Check logo resize handles first (higher priority)
-            if (state.logo) {
-                const logoW = state.logoWidth;
-                const logoH = state.logoHeight;
-                const logoLeft = state.logoX - logoW / 2;
-                const logoTop = state.logoY - logoH / 2;
+            // Darker neck shadow
+            ctx.shadowColor = 'transparent';
+            const neckShadow = ctx.createRadialGradient(200, 52, 0, 200, 52, 35);
+            neckShadow.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
+            neckShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = neckShadow;
+            ctx.fill();
+            
+            // Neck outline
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Ribbed texture
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                const offset = -15 + i * 8;
+                ctx.arc(200, 52, Math.abs(offset) + 8, 0.3, Math.PI - 0.3);
+                ctx.stroke();
+            }
+            
+            // Inner neck opening
+            ctx.fillStyle = '#1a1a1a';
+            ctx.beginPath();
+            ctx.ellipse(200, 54, 28, 8, 0, 0, Math.PI);
+            ctx.fill();
+        } else {
+            // Back neck - realistic crew neck back
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 2;
+            
+            // Back collar band
+            ctx.fillStyle = tshirtColor;
+            ctx.beginPath();
+            ctx.moveTo(165, 52);
+            ctx.bezierCurveTo(175, 58, 185, 62, 200, 62);
+            ctx.bezierCurveTo(215, 62, 225, 58, 235, 52);
+            ctx.bezierCurveTo(225, 50, 215, 48, 200, 48);
+            ctx.bezierCurveTo(185, 48, 175, 50, 165, 52);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Back neck shadow for depth
+            ctx.shadowColor = 'transparent';
+            const backNeckShadow = ctx.createLinearGradient(200, 48, 200, 62);
+            backNeckShadow.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
+            backNeckShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = backNeckShadow;
+            ctx.fill();
+            
+            // Collar outline
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Ribbed collar texture on back
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                const yPos = 52 + i * 4;
+                ctx.moveTo(170, yPos);
+                ctx.bezierCurveTo(185, yPos + 2, 215, yPos + 2, 230, yPos);
+                ctx.stroke();
+            }
+            
+            // Center back seam/tag area indication
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 2]);
+            ctx.beginPath();
+            ctx.moveTo(200, 62);
+            ctx.lineTo(200, 85);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Small tag outline suggestion
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.fillRect(195, 68, 10, 15);
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.lineWidth = 0.5;
+            ctx.strokeRect(195, 68, 10, 15);
+        }
+        
+        // Add realistic back features if it's the back view
+        if (isBack) {
+            // Center back vertical highlight
+            const backHighlight = ctx.createLinearGradient(195, 100, 205, 100);
+            backHighlight.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            backHighlight.addColorStop(0.5, 'rgba(255, 255, 255, 0.12)');
+            backHighlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = backHighlight;
+            ctx.fillRect(195, 100, 10, 350);
+            
+            // Shoulder blade area shadows for realism
+            const shoulderBladeL = ctx.createRadialGradient(150, 150, 0, 150, 150, 50);
+            shoulderBladeL.addColorStop(0, 'rgba(0, 0, 0, 0.05)');
+            shoulderBladeL.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = shoulderBladeL;
+            ctx.beginPath();
+            ctx.ellipse(150, 150, 35, 45, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            const shoulderBladeR = ctx.createRadialGradient(250, 150, 0, 250, 150, 50);
+            shoulderBladeR.addColorStop(0, 'rgba(0, 0, 0, 0.05)');
+            shoulderBladeR.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = shoulderBladeR;
+            ctx.beginPath();
+            ctx.ellipse(250, 150, 35, 45, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Lower back curve shadow
+            const lowerBackShadow = ctx.createRadialGradient(200, 380, 0, 200, 380, 80);
+            lowerBackShadow.addColorStop(0, 'rgba(0, 0, 0, 0.06)');
+            lowerBackShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = lowerBackShadow;
+            ctx.beginPath();
+            ctx.ellipse(200, 380, 60, 50, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        ctx.shadowColor = 'transparent';
+
+        // Logo with drag and resize handles
+        if (logoImg) {
+            const logoW = logoWidth;
+            const logoH = logoHeight;
+            const logoXPos = logoX - logoW / 2;
+            const logoYPos = logoY - logoH / 2;
+            
+            // Draw logo
+            ctx.drawImage(logoImg, logoXPos, logoYPos, logoW, logoH);
+            
+            // Draw selection box and resize handles if this is active view
+            if ((activeView === 'front' && !isBack) || (activeView === 'back' && isBack)) {
+                // Selection box
+                ctx.strokeStyle = '#8b5cf6';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(logoXPos, logoYPos, logoW, logoH);
+                ctx.setLineDash([]);
+                
+                ctx.fillStyle = '#8b5cf6';
                 const handleSize = 10;
-                const handleHitbox = 15; // Larger hitbox for easier grabbing
                 
-                // Check all handles - corners and edges
-                const handles = [
-                    // Corners
-                    { name: 'nw', x: logoLeft, y: logoTop },
-                    { name: 'ne', x: logoLeft + logoW, y: logoTop },
-                    { name: 'sw', x: logoLeft, y: logoTop + logoH },
-                    { name: 'se', x: logoLeft + logoW, y: logoTop + logoH },
-                    // Edges
-                    { name: 'n', x: logoLeft + logoW/2, y: logoTop },
-                    { name: 'e', x: logoLeft + logoW, y: logoTop + logoH/2 },
-                    { name: 's', x: logoLeft + logoW/2, y: logoTop + logoH },
-                    { name: 'w', x: logoLeft, y: logoTop + logoH/2 }
-                ];
+                // Corner handles
+                ctx.fillRect(logoXPos - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize);
+                ctx.fillRect(logoXPos + logoW - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize);
+                ctx.fillRect(logoXPos - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize);
+                ctx.fillRect(logoXPos + logoW - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize);
                 
-                for (const handle of handles) {
-                    if (Math.abs(transformedX - handle.x) < handleHitbox &&
-                        Math.abs(transformedY - handle.y) < handleHitbox) {
-                        return { 
-                            target: 'logo', 
-                            resize: handle.name, 
-                            x: state.logoX, 
-                            y: state.logoY, 
-                            width: state.logoWidth,
-                            height: state.logoHeight
-                        };
-                    }
-                }
+                // Edge handles (top, right, bottom, left)
+                ctx.fillRect(logoXPos + logoW/2 - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize); // top
+                ctx.fillRect(logoXPos + logoW - handleSize/2, logoYPos + logoH/2 - handleSize/2, handleSize, handleSize); // right
+                ctx.fillRect(logoXPos + logoW/2 - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize); // bottom
+                ctx.fillRect(logoXPos - handleSize/2, logoYPos + logoH/2 - handleSize/2, handleSize, handleSize); // left
                 
-                // Check logo body for dragging
-                if (transformedX >= logoLeft && transformedX <= logoLeft + logoW &&
-                    transformedY >= logoTop && transformedY <= logoTop + logoH) {
-                    return { target: 'logo', x: state.logoX, y: state.logoY };
-                }
-            }
-            
-            // Check text
-            if (state.text) {
-                const canvas = activeView === 'front' ? frontCanvas : backCanvas;
-                const ctx = activeView === 'front' ? frontCtx : backCanvas.getContext('2d');
-                ctx.font = `bold ${state.fontSize}px ${state.fontStyle}`;
-                const textMetrics = ctx.measureText(state.text);
-                const textWidth = textMetrics.width / scale;
-                const textHeight = state.fontSize;
-                
-                const textLeft = state.textX - textWidth / 2 - 10;
-                const textTop = state.textY - textHeight / 2 - 5;
-                const textRight = textLeft + textWidth + 20;
-                const textBottom = textTop + textHeight + 10;
-                
-                if (transformedX >= textLeft && transformedX <= textRight &&
-                    transformedY >= textTop && transformedY <= textBottom) {
-                    return { target: 'text', x: state.textX, y: state.textY };
-                }
-            }
-            
-            return null;
-        }
-
-        // Mouse event handlers
-        function handleMouseDown(evt) {
-            const canvas = evt.target;
-            const mousePos = getMousePos(canvas, evt);
-            const hitTest = checkHitTest(mousePos.x, mousePos.y);
-            
-            if (hitTest) {
-                const scale = tshirtSize / 100;
-                const transformedX = (mousePos.x - 200) / scale + 200;
-                const transformedY = (mousePos.y - 250) / scale + 250;
-                
-                if (hitTest.resize) {
-                    // Resize mode
-                    isResizing = true;
-                    dragTarget = hitTest.target;
-                    resizeHandle = hitTest.resize;
-                    resizeStartSize = hitTest.size;
-                    resizeStartX = transformedX;
-                    resizeStartY = transformedY;
-                    canvas.style.cursor = getResizeCursor(hitTest.resize);
-                } else {
-                    // Drag mode
-                    isDragging = true;
-                    dragTarget = hitTest.target;
-                    dragOffsetX = transformedX - hitTest.x;
-                    dragOffsetY = transformedY - hitTest.y;
-                    canvas.style.cursor = 'grabbing';
-                }
+                // Handle outlines for better visibility
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                // Corners
+                ctx.strokeRect(logoXPos - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize);
+                ctx.strokeRect(logoXPos + logoW - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize);
+                ctx.strokeRect(logoXPos - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize);
+                ctx.strokeRect(logoXPos + logoW - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize);
+                // Edges
+                ctx.strokeRect(logoXPos + logoW/2 - handleSize/2, logoYPos - handleSize/2, handleSize, handleSize);
+                ctx.strokeRect(logoXPos + logoW - handleSize/2, logoYPos + logoH/2 - handleSize/2, handleSize, handleSize);
+                ctx.strokeRect(logoXPos + logoW/2 - handleSize/2, logoYPos + logoH - handleSize/2, handleSize, handleSize);
+                ctx.strokeRect(logoXPos - handleSize/2, logoYPos + logoH/2 - handleSize/2, handleSize, handleSize);
             }
         }
 
-        function handleMouseMove(evt) {
-            const canvas = evt.target;
-            const mousePos = getMousePos(canvas, evt);
+        // Text with drag handles
+        if (text) {
+            ctx.font = `bold ${fontSize}px ${fontStyle}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const textMetrics = ctx.measureText(text);
+            const textWidth = textMetrics.width;
+            const textHeight = fontSize;
+            
+            // Draw text outline and fill
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeText(text, textX, textY);
+            ctx.fillStyle = textColor;
+            ctx.fillText(text, textX, textY);
+            
+            // Draw selection box if this is active view
+            if ((activeView === 'front' && !isBack) || (activeView === 'back' && isBack)) {
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(textX - textWidth/2 - 10, textY - textHeight/2 - 5, textWidth + 20, textHeight + 10);
+                ctx.setLineDash([]);
+                
+                // Corner handles
+                ctx.fillStyle = '#10b981';
+                const handleSize = 8;
+                ctx.fillRect(textX - textWidth/2 - 10 - handleSize/2, textY - textHeight/2 - 5 - handleSize/2, handleSize, handleSize);
+                ctx.fillRect(textX + textWidth/2 + 10 - handleSize/2, textY - textHeight/2 - 5 - handleSize/2, handleSize, handleSize);
+            }
+        }
+        
+        ctx.restore();
+    }
+
+    function redrawAll() {
+        drawTshirt(frontCtx, false, frontLogo, frontLogoWidth, frontLogoHeight, frontLogoX, frontLogoY, 
+                  frontText, frontFontSize, frontTextColor, frontFontStyle, frontTextX, frontTextY);
+        drawTshirt(backCtx, true, backLogo, backLogoWidth, backLogoHeight, backLogoX, backLogoY, 
+                  backText, backFontSize, backTextColor, backFontStyle, backTextX, backTextY);
+    }
+
+    redrawAll();
+
+    // Get mouse position relative to canvas
+    function getMousePos(canvas, evt) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: (evt.clientX - rect.left) * scaleX,
+            y: (evt.clientY - rect.top) * scaleY
+        };
+    }
+
+    // Check if mouse is over logo, text, or resize handles
+    function checkHitTest(mouseX, mouseY) {
+        const state = getCurrentState();
+        const scale = tshirtSize / 100;
+        
+        // Transform mouse coordinates to match canvas transform
+        const transformedX = (mouseX - 200) / scale + 200;
+        const transformedY = (mouseY - 250) / scale + 250;
+        
+        // Check logo resize handles first
+        if (state.logo) {
+            const logoW = state.logoWidth;
+            const logoH = state.logoHeight;
+            const logoLeft = state.logoX - logoW / 2;
+            const logoTop = state.logoY - logoH / 2;
+            const handleHitbox = 12; // hitbox radius
+            
+            // Handles positions
+            const handles = [
+                { name: 'nw', x: logoLeft, y: logoTop },
+                { name: 'ne', x: logoLeft + logoW, y: logoTop },
+                { name: 'sw', x: logoLeft, y: logoTop + logoH },
+                { name: 'se', x: logoLeft + logoW, y: logoTop + logoH },
+                { name: 'n', x: logoLeft + logoW/2, y: logoTop },
+                { name: 'e', x: logoLeft + logoW, y: logoTop + logoH/2 },
+                { name: 's', x: logoLeft + logoW/2, y: logoTop + logoH },
+                { name: 'w', x: logoLeft, y: logoTop + logoH/2 }
+            ];
+            
+            for (const h of handles) {
+                if (Math.abs(transformedX - h.x) <= handleHitbox && Math.abs(transformedY - h.y) <= handleHitbox) {
+                    return { 
+                        target: 'logo', 
+                        resize: h.name, 
+                        x: state.logoX, 
+                        y: state.logoY, 
+                        width: state.logoWidth,
+                        height: state.logoHeight
+                    };
+                }
+            }
+            
+            // Check logo body for dragging
+            if (transformedX >= logoLeft && transformedX <= logoLeft + logoW &&
+                transformedY >= logoTop && transformedY <= logoTop + logoH) {
+                return { target: 'logo', x: state.logoX, y: state.logoY };
+            }
+        }
+        
+        // Check text
+        if (state.text) {
+            const ctx = (activeView === 'front') ? frontCtx : backCtx;
+            ctx.font = `bold ${state.fontSize}px ${state.fontStyle}`;
+            const textMetrics = ctx.measureText(state.text);
+            const textWidth = textMetrics.width;
+            const textHeight = state.fontSize;
+            
+            const textLeft = state.textX - textWidth / 2 - 10;
+            const textTop = state.textY - textHeight / 2 - 5;
+            const textRight = textLeft + textWidth + 20;
+            const textBottom = textTop + textHeight + 10;
+            
+            if (transformedX >= textLeft && transformedX <= textRight &&
+                transformedY >= textTop && transformedY <= textBottom) {
+                return { target: 'text', x: state.textX, y: state.textY };
+            }
+        }
+        
+        return null;
+    }
+
+    // Mouse event handlers
+    function handleMouseDown(evt) {
+        const canvas = evt.target;
+        const mousePos = getMousePos(canvas, evt);
+        const hitTest = checkHitTest(mousePos.x, mousePos.y);
+        
+        if (hitTest) {
             const scale = tshirtSize / 100;
             const transformedX = (mousePos.x - 200) / scale + 200;
             const transformedY = (mousePos.y - 250) / scale + 250;
             
-            if (isResizing && dragTarget === 'logo') {
-                const state = getCurrentState();
-                const centerX = state.logoX;
-                const centerY = state.logoY;
-                
-                let newWidth = state.logoWidth;
-                let newHeight = state.logoHeight;
-                
-                // Calculate new dimensions based on handle
-                if (resizeHandle.includes('e')) {
-                    // East handles - change width
-                    const leftEdge = centerX - state.logoWidth / 2;
-                    newWidth = Math.max(30, Math.min(400, (transformedX - leftEdge) * 2));
-                }
-                if (resizeHandle.includes('w')) {
-                    // West handles - change width
-                    const rightEdge = centerX + state.logoWidth / 2;
-                    newWidth = Math.max(30, Math.min(400, (rightEdge - transformedX) * 2));
-                }
-                if (resizeHandle.includes('s')) {
-                    // South handles - change height
-                    const topEdge = centerY - state.logoHeight / 2;
-                    newHeight = Math.max(30, Math.min(400, (transformedY - topEdge) * 2));
-                }
-                if (resizeHandle.includes('n')) {
-                    // North handles - change height
-                    const bottomEdge = centerY + state.logoHeight / 2;
-                    newHeight = Math.max(30, Math.min(400, (bottomEdge - transformedY) * 2));
-                }
-                
-                // For edge handles (not corners), maintain aspect ratio if shift is pressed
-                if (evt.shiftKey && (resizeHandle.length === 1)) {
-                    const aspectRatio = state.logoWidth / state.logoHeight;
-                    if (resizeHandle === 'n' || resizeHandle === 's') {
-                        newWidth = newHeight * aspectRatio;
-                    } else {
-                        newHeight = newWidth / aspectRatio;
-                    }
-                }
-                
-                updateCurrentState({ logoWidth: newWidth, logoHeight: newHeight });
-                
-                // Update slider to average size
-                const avgSize = (newWidth + newHeight) / 2;
-                document.getElementById('logoSize').value = Math.round(avgSize);
-                document.getElementById('logoSizeValue').textContent = Math.round(avgSize);
-                
-                redrawAll();
-            } else if (isDragging && dragTarget) {
-                // Drag mode
-                const newX = transformedX - dragOffsetX;
-                const newY = transformedY - dragOffsetY;
-                
-                // Constrain to t-shirt bounds
-                const constrainedX = Math.max(80, Math.min(320, newX));
-                const constrainedY = Math.max(120, Math.min(450, newY));
-                
-                if (dragTarget === 'logo') {
-                    updateCurrentState({ logoX: constrainedX, logoY: constrainedY });
-                } else if (dragTarget === 'text') {
-                    updateCurrentState({ textX: constrainedX, textY: constrainedY });
-                }
-                
-                redrawAll();
+            if (hitTest.resize) {
+                // Resize mode
+                isResizing = true;
+                dragTarget = hitTest.target;
+                resizeHandle = hitTest.resize;
+                resizeStartX = transformedX;
+                resizeStartY = transformedY;
+                startWidth = hitTest.width;
+                startHeight = hitTest.height;
+                canvas.style.cursor = getResizeCursor(hitTest.resize);
             } else {
-                // Update cursor based on hover
-                const hitTest = checkHitTest(mousePos.x, mousePos.y);
-                if (hitTest) {
-                    if (hitTest.resize) {
-                        canvas.style.cursor = getResizeCursor(hitTest.resize);
-                    } else {
-                        canvas.style.cursor = 'grab';
-                    }
-                } else {
-                    canvas.style.cursor = 'default';
-                }
+                // Drag mode
+                isDragging = true;
+                dragTarget = hitTest.target;
+                dragOffsetX = transformedX - hitTest.x;
+                dragOffsetY = transformedY - hitTest.y;
+                canvas.style.cursor = 'grabbing';
             }
         }
+    }
 
-        function handleMouseUp(evt) {
-            isDragging = false;
-            isResizing = false;
-            dragTarget = null;
-            resizeHandle = null;
-            evt.target.style.cursor = 'default';
+    function handleMouseMove(evt) {
+        const canvas = evt.target;
+        const mousePos = getMousePos(canvas, evt);
+        const scale = tshirtSize / 100;
+        const transformedX = (mousePos.x - 200) / scale + 200;
+        const transformedY = (mousePos.y - 250) / scale + 250;
+        
+        if (isResizing && dragTarget === 'logo') {
+            const state = getCurrentState();
+            const centerX = state.logoX;
+            const centerY = state.logoY;
             
-            // Update cursor on hover
-            const canvas = evt.target;
-            const mousePos = getMousePos(canvas, evt);
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+            const dx = transformedX - resizeStartX;
+            const dy = transformedY - resizeStartY;
+            
+            // Handle each handle type. We keep center fixed (change width/height).
+            if (resizeHandle === 'se') {
+                newWidth = Math.max(30, startWidth + dx);
+                newHeight = Math.max(30, startHeight + dy);
+            } else if (resizeHandle === 'sw') {
+                newWidth = Math.max(30, startWidth - dx);
+                newHeight = Math.max(30, startHeight + dy);
+            } else if (resizeHandle === 'ne') {
+                newWidth = Math.max(30, startWidth + dx);
+                newHeight = Math.max(30, startHeight - dy);
+            } else if (resizeHandle === 'nw') {
+                newWidth = Math.max(30, startWidth - dx);
+                newHeight = Math.max(30, startHeight - dy);
+            } else if (resizeHandle === 'e') {
+                newWidth = Math.max(30, startWidth + dx);
+            } else if (resizeHandle === 'w') {
+                newWidth = Math.max(30, startWidth - dx);
+            } else if (resizeHandle === 's') {
+                newHeight = Math.max(30, startHeight + dy);
+            } else if (resizeHandle === 'n') {
+                newHeight = Math.max(30, startHeight - dy);
+            }
+
+            // If shift pressed and single-edge handle, keep aspect ratio
+            if (evt.shiftKey && ['n','s','e','w'].includes(resizeHandle)) {
+                const aspect = startWidth / startHeight;
+                if (resizeHandle === 'n' || resizeHandle === 's') {
+                    newWidth = Math.round(newHeight * aspect);
+                } else {
+                    newHeight = Math.round(newWidth / aspect);
+                }
+            }
+
+            updateCurrentState({ logoWidth: newWidth, logoHeight: newHeight });
+            
+            // Update slider to average size
+            const avgSize = Math.round((newWidth + newHeight) / 2);
+            const slider = document.getElementById('logoSize');
+            if (slider) {
+                slider.value = avgSize;
+                const display = document.getElementById('logoSizeValue');
+                if (display) display.textContent = avgSize;
+            }
+            
+            redrawAll();
+        } else if (isDragging && dragTarget) {
+            // Drag mode
+            const newX = transformedX - dragOffsetX;
+            const newY = transformedY - dragOffsetY;
+            
+            // Constrain to t-shirt bounds (these values are tuned to the shirt shape)
+            const constrainedX = Math.max(80, Math.min(320, newX));
+            const constrainedY = Math.max(120, Math.min(450, newY));
+            
+            if (dragTarget === 'logo') {
+                updateCurrentState({ logoX: constrainedX, logoY: constrainedY });
+            } else if (dragTarget === 'text') {
+                updateCurrentState({ textX: constrainedX, textY: constrainedY });
+            }
+            
+            redrawAll();
+        } else {
+            // Update cursor based on hover
             const hitTest = checkHitTest(mousePos.x, mousePos.y);
             if (hitTest) {
                 if (hitTest.resize) {
@@ -913,83 +894,123 @@
                 } else {
                     canvas.style.cursor = 'grab';
                 }
-            }
-        }
-        
-        function getResizeCursor(handle) {
-            const cursors = {
-                'nw': 'nwse-resize',
-                'ne': 'nesw-resize',
-                'sw': 'nesw-resize',
-                'se': 'nwse-resize',
-                'n': 'ns-resize',
-                's': 'ns-resize',
-                'e': 'ew-resize',
-                'w': 'ew-resize'
-            };
-            return cursors[handle] || 'default';
-        }
-
-        // Add mouse event listeners to both canvases
-        [frontCanvas, backCanvas].forEach(canvas => {
-            canvas.addEventListener('mousedown', handleMouseDown);
-            canvas.addEventListener('mousemove', handleMouseMove);
-            canvas.addEventListener('mouseup', handleMouseUp);
-            canvas.addEventListener('mouseleave', handleMouseUp);
-        });
-
-        // View switching
-        document.getElementById('activateFront').addEventListener('click', function() {
-            activeView = 'front';
-            updateActiveIndicator();
-            loadViewSettings();
-            redrawAll();
-        });
-
-        document.getElementById('activateBack').addEventListener('click', function() {
-            activeView = 'back';
-            updateActiveIndicator();
-            loadViewSettings();
-            redrawAll();
-        });
-
-        function updateActiveIndicator() {
-            const indicator = document.getElementById('activeIndicator');
-            if (activeView === 'front') {
-                indicator.className = 'bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-xl p-6 text-white';
-                indicator.innerHTML = '<h3 class="text-xl font-bold mb-2">✏️ Editing: Front</h3><p class="text-sm opacity-90">All changes apply to the front view</p>';
             } else {
-                indicator.className = 'bg-gradient-to-r from-red-600 to-red-700 rounded-2xl shadow-xl p-6 text-white';
-                indicator.innerHTML = '<h3 class="text-xl font-bold mb-2">✏️ Editing: Back</h3><p class="text-sm opacity-90">All changes apply to the back view</p>';
+                canvas.style.cursor = 'default';
             }
         }
+    }
 
-        function loadViewSettings() {
-            const state = getCurrentState();
-            const avgSize = (state.logoWidth + state.logoHeight) / 2;
-            document.getElementById('logoSize').value = Math.round(avgSize);
-            document.getElementById('logoSizeValue').textContent = Math.round(avgSize);
-            document.getElementById('customText').value = state.text;
-            document.getElementById('fontSize').value = state.fontSize;
-            document.getElementById('fontSizeValue').textContent = state.fontSize;
-            document.getElementById('textColor').value = state.textColor;
-            document.getElementById('fontStyle').value = state.fontStyle;
+    function handleMouseUp(evt) {
+        isDragging = false;
+        isResizing = false;
+        dragTarget = null;
+        resizeHandle = null;
+        evt.target.style.cursor = 'default';
+        
+        // Update cursor on hover
+        const canvas = evt.target;
+        const mousePos = getMousePos(canvas, evt);
+        const hitTest = checkHitTest(mousePos.x, mousePos.y);
+        if (hitTest) {
+            if (hitTest.resize) {
+                canvas.style.cursor = getResizeCursor(hitTest.resize);
+            } else {
+                canvas.style.cursor = 'grab';
+            }
         }
+    }
+    
+    function getResizeCursor(handle) {
+        const cursors = {
+            'nw': 'nwse-resize',
+            'ne': 'nesw-resize',
+            'sw': 'nesw-resize',
+            'se': 'nwse-resize',
+            'n': 'ns-resize',
+            's': 'ns-resize',
+            'e': 'ew-resize',
+            'w': 'ew-resize'
+        };
+        return cursors[handle] || 'default';
+    }
 
-        // T-shirt controls
-        document.getElementById('tshirtSize').addEventListener('input', function(e) {
+    // Add mouse event listeners to both canvases
+    [frontCanvas, backCanvas].forEach(canvas => {
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('mouseleave', handleMouseUp);
+    });
+
+    // View switching
+    document.getElementById('activateFront').addEventListener('click', function() {
+        activeView = 'front';
+        updateActiveIndicator();
+        loadViewSettings();
+        redrawAll();
+    });
+
+    document.getElementById('activateBack').addEventListener('click', function() {
+        activeView = 'back';
+        updateActiveIndicator();
+        loadViewSettings();
+        redrawAll();
+    });
+
+    function updateActiveIndicator() {
+        const indicator = document.getElementById('activeIndicator');
+        if (!indicator) return;
+        if (activeView === 'front') {
+            indicator.className = 'bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-xl p-6 text-white';
+            indicator.innerHTML = '<h3 class="text-xl font-bold mb-2">✏️ Editing: Front</h3><p class="text-sm opacity-90">All changes apply to the front view</p>';
+        } else {
+            indicator.className = 'bg-gradient-to-r from-red-600 to-red-700 rounded-2xl shadow-xl p-6 text-white';
+            indicator.innerHTML = '<h3 class="text-xl font-bold mb-2">✏️ Editing: Back</h3><p class="text-sm opacity-90">All changes apply to the back view</p>';
+        }
+    }
+
+    function loadViewSettings() {
+        const state = getCurrentState();
+        const avgSize = Math.round((state.logoWidth + state.logoHeight) / 2);
+        const logoSizeInput = document.getElementById('logoSize');
+        if (logoSizeInput) logoSizeInput.value = avgSize;
+        const logoSizeValue = document.getElementById('logoSizeValue');
+        if (logoSizeValue) logoSizeValue.textContent = avgSize;
+        const customText = document.getElementById('customText');
+        if (customText) customText.value = state.text;
+        const fontSizeInput = document.getElementById('fontSize');
+        if (fontSizeInput) fontSizeInput.value = state.fontSize;
+        const fontSizeValue = document.getElementById('fontSizeValue');
+        if (fontSizeValue) fontSizeValue.textContent = state.fontSize;
+        const textColorInput = document.getElementById('textColor');
+        if (textColorInput) textColorInput.value = state.textColor;
+        const fontStyleInput = document.getElementById('fontStyle');
+        if (fontStyleInput) fontStyleInput.value = state.fontStyle;
+    }
+
+    // T-shirt controls
+    const tshirtSizeInput = document.getElementById('tshirtSize');
+    if (tshirtSizeInput) {
+        tshirtSizeInput.addEventListener('input', function(e) {
             tshirtSize = parseInt(e.target.value);
-            document.getElementById('sizeValue').textContent = tshirtSize;
+            const sizeValue = document.getElementById('sizeValue');
+            if (sizeValue) sizeValue.textContent = tshirtSize;
             redrawAll();
         });
+    }
 
-        document.getElementById('tshirtColor').addEventListener('input', function(e) {
+    const tshirtColorInput = document.getElementById('tshirtColor');
+    if (tshirtColorInput) {
+        tshirtColorInput.addEventListener('input', function(e) {
             tshirtColor = e.target.value;
             redrawAll();
         });
+    }
 
-        // Logo controls
-        document.getElementById('logoUpload').addEventListener('change', function(e) {
+    // Logo controls
+    const logoUpload = document.getElementById('logoUpload');
+    if (logoUpload) {
+        logoUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -998,9 +1019,19 @@
                     img.onload = function() {
                         if (activeView === 'front') {
                             frontLogo = img;
+                            // Reset to sensible defaults for new image
+                            frontLogoWidth = Math.min(220, img.width / 2, 200);
+                            frontLogoHeight = Math.min(220, img.height / 2, 200);
+                            frontLogoX = 200;
+                            frontLogoY = 200;
                         } else {
                             backLogo = img;
+                            backLogoWidth = Math.min(220, img.width / 2, 200);
+                            backLogoHeight = Math.min(220, img.height / 2, 200);
+                            backLogoX = 200;
+                            backLogoY = 200;
                         }
+                        loadViewSettings();
                         redrawAll();
                     };
                     img.src = event.target.result;
@@ -1008,15 +1039,24 @@
                 reader.readAsDataURL(file);
             }
         });
+    }
 
-        document.getElementById('logoSize').addEventListener('input', function(e) {
+    const logoSizeInput = document.getElementById('logoSize');
+    if (logoSizeInput) {
+        logoSizeInput.addEventListener('input', function(e) {
             const size = parseInt(e.target.value);
-            document.getElementById('logoSizeValue').textContent = size;
+            const state = getCurrentState();
+            // Update both width and height proportionally (maintain square behaviour)
             updateCurrentState({ logoWidth: size, logoHeight: size });
+            const display = document.getElementById('logoSizeValue');
+            if (display) display.textContent = size;
             redrawAll();
         });
+    }
 
-        document.getElementById('deleteLogo').addEventListener('click', function() {
+    const deleteLogoBtn = document.getElementById('deleteLogo');
+    if (deleteLogoBtn) {
+        deleteLogoBtn.addEventListener('click', function() {
             if (activeView === 'front') {
                 frontLogo = null;
             } else {
@@ -1024,69 +1064,102 @@
             }
             redrawAll();
         });
+    }
 
-        // Text controls
-        document.getElementById('customText').addEventListener('input', function(e) {
+    // Text controls
+    const customTextInput = document.getElementById('customText');
+    if (customTextInput) {
+        customTextInput.addEventListener('input', function(e) {
             updateCurrentState({ text: e.target.value });
             redrawAll();
         });
+    }
 
-        document.getElementById('fontSize').addEventListener('input', function(e) {
+    const fontSizeInput = document.getElementById('fontSize');
+    if (fontSizeInput) {
+        fontSizeInput.addEventListener('input', function(e) {
             const size = parseInt(e.target.value);
-            document.getElementById('fontSizeValue').textContent = size;
             updateCurrentState({ fontSize: size });
+            const display = document.getElementById('fontSizeValue');
+            if (display) display.textContent = size;
             redrawAll();
         });
+    }
 
-        document.getElementById('textColor').addEventListener('input', function(e) {
+    const textColorInput = document.getElementById('textColor');
+    if (textColorInput) {
+        textColorInput.addEventListener('input', function(e) {
             updateCurrentState({ textColor: e.target.value });
             redrawAll();
         });
+    }
 
-        document.getElementById('fontStyle').addEventListener('change', function(e) {
+    const fontStyleInput = document.getElementById('fontStyle');
+    if (fontStyleInput) {
+        fontStyleInput.addEventListener('change', function(e) {
             updateCurrentState({ fontStyle: e.target.value });
             redrawAll();
         });
+    }
 
-        document.getElementById('deleteText').addEventListener('click', function() {
+    const deleteTextBtn = document.getElementById('deleteText');
+    if (deleteTextBtn) {
+        deleteTextBtn.addEventListener('click', function() {
             updateCurrentState({ text: '' });
-            document.getElementById('customText').value = '';
+            const input = document.getElementById('customText');
+            if (input) input.value = '';
             redrawAll();
         });
+    }
 
-        // Download functions
-        document.getElementById('downloadFront').addEventListener('click', function() {
+    // Download functions
+    const downloadFront = document.getElementById('downloadFront');
+    if (downloadFront) {
+        downloadFront.addEventListener('click', function() {
             const link = document.createElement('a');
             link.download = `tshirt-front-${Date.now()}.png`;
             link.href = frontCanvas.toDataURL('image/png');
             link.click();
         });
+    }
 
-        document.getElementById('downloadBack').addEventListener('click', function() {
+    const downloadBack = document.getElementById('downloadBack');
+    if (downloadBack) {
+        downloadBack.addEventListener('click', function() {
             const link = document.createElement('a');
             link.download = `tshirt-back-${Date.now()}.png`;
             link.href = backCanvas.toDataURL('image/png');
             link.click();
         });
+    }
 
-        document.getElementById('downloadBoth').addEventListener('click', function() {
+    const downloadBoth = document.getElementById('downloadBoth');
+    if (downloadBoth) {
+        downloadBoth.addEventListener('click', function() {
+            // Download front
             const linkFront = document.createElement('a');
-            linkFront.download = `tshirt-front-${Date.now()}.png`;
+            const timestamp = Date.now();
+            linkFront.download = `tshirt-front-${timestamp}.png`;
             linkFront.href = frontCanvas.toDataURL('image/png');
             linkFront.click();
-            
+
+            // Small delay then download back
             setTimeout(() => {
                 const linkBack = document.createElement('a');
-                linkBack.download = `tshirt-back-${Date.now()}.png`;
+                linkBack.download = `tshirt-back-${timestamp}.png`;
                 linkBack.href = backCanvas.toDataURL('image/png');
                 linkBack.click();
-            }, 500);
+            }, 300);
         });
+    }
 
-        // Share via WhatsApp Web
-        document.getElementById('shareBtn').addEventListener('click', async function() {
+    // Share via WhatsApp Web
+    const shareBtn = document.getElementById('shareBtn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', async function() {
             const button = this;
             button.disabled = true;
+            const originalText = button.innerHTML;
             button.innerHTML = '⏳ Preparing images...';
 
             try {
@@ -1094,45 +1167,40 @@
                 const frontDataUrl = frontCanvas.toDataURL('image/png');
                 const backDataUrl = backCanvas.toDataURL('image/png');
                 
-                // Create download links for both images
+                // Trigger downloads (so user has the files)
                 const timestamp = Date.now();
-                
-                // Download front image
                 const linkFront = document.createElement('a');
                 linkFront.download = `tshirt-front-${timestamp}.png`;
                 linkFront.href = frontDataUrl;
                 linkFront.click();
-                
-                // Download back image after a short delay
+
                 setTimeout(() => {
                     const linkBack = document.createElement('a');
                     linkBack.download = `tshirt-back-${timestamp}.png`;
                     linkBack.href = backDataUrl;
                     linkBack.click();
                 }, 300);
-                
-                // Open WhatsApp Web with pre-filled message to specific number
+
+                // Open WhatsApp Web to specific number with message
                 setTimeout(() => {
                     const phoneNumber = '918383933578'; // India country code + number
                     const message = encodeURIComponent('Here are the t-shirt design images! 👕✨\n\nFront and back designs:');
-                    
-                    // Open WhatsApp Web directly to the specific number
                     window.open(`https://web.whatsapp.com/send?phone=${phoneNumber}&text=${message}`, '_blank');
-                    
-                    // Show instructions
-                    alert('✅ Images downloaded successfully!\n\n📱 WhatsApp Web is opening for 8383933578...\n\n📎 To send:\n1. Wait for the chat to load\n2. Click the paperclip (📎) icon\n3. Choose "Photos & Videos"\n4. Select the 2 downloaded t-shirt images\n5. Click Send!');
+
+                    alert('✅ Images downloaded successfully!\n\n📱 WhatsApp Web is opening...\n\n📎 To send:\n1. Wait for the chat to load\n2. Click the paperclip (📎) icon\n3. Choose "Photos & Videos"\n4. Select the 2 downloaded t-shirt images\n5. Click Send!');
                 }, 800);
-                
             } catch (error) {
                 console.error('Share error:', error);
                 alert('❌ Error preparing images. Please try downloading manually.');
             } finally {
                 setTimeout(() => {
                     button.disabled = false;
-                    button.innerHTML = '📤 Share via WhatsApp';
-                }, 2000);
+                    button.innerHTML = originalText || '📤 Share via WhatsApp';
+                }, 1600);
             }
         });
-    </script>
+    }
+</script>
+
 </body>
 </html>
