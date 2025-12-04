@@ -2,16 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>T-shirt Designer - Drag & Drop</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Prevent text selection during drag */
+        canvas {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+    </style>
 </head>
 <body class="bg-gradient-to-br from-purple-100 to-blue-100 min-h-screen">
     <div class="container mx-auto p-4 md:p-8">
         <!-- Header -->
         <div class="text-center mb-6">
             <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">👕 Drag & Drop T-shirt Designer</h1>
-            <p class="text-gray-600">Click and drag logos/text to position them!</p>
+            <p class="text-gray-600">Touch and drag logos/text to position them!</p>
         </div>
 
         <div class="grid lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
@@ -27,7 +39,7 @@
                     </div>
                     <div class="bg-gray-50 rounded-xl p-4 relative">
                         <canvas id="frontCanvas" width="400" height="500" class="max-w-full mx-auto cursor-move border-2 border-dashed border-gray-300"></canvas>
-                        <p class="text-xs text-gray-500 text-center mt-2">💡 Click & drag elements to reposition them</p>
+                        <p class="text-xs text-gray-500 text-center mt-2">💡 Touch & drag elements to reposition them</p>
                     </div>
                 </div>
 
@@ -41,7 +53,7 @@
                     </div>
                     <div class="bg-gray-50 rounded-xl p-4 relative">
                         <canvas id="backCanvas" width="400" height="500" class="max-w-full mx-auto cursor-move border-2 border-dashed border-gray-300"></canvas>
-                        <p class="text-xs text-gray-500 text-center mt-2">💡 Click & drag elements to reposition them</p>
+                        <p class="text-xs text-gray-500 text-center mt-2">💡 Touch & drag elements to reposition them</p>
                     </div>
                 </div>
             </div>
@@ -693,18 +705,34 @@
 
     redrawAll();
 
-    // Get mouse position relative to canvas
+    // Get mouse/touch position relative to canvas
     function getMousePos(canvas, evt) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
+        
+        let clientX, clientY;
+        
+        // Handle touch events
+        if (evt.touches && evt.touches.length > 0) {
+            clientX = evt.touches[0].clientX;
+            clientY = evt.touches[0].clientY;
+        } else if (evt.changedTouches && evt.changedTouches.length > 0) {
+            clientX = evt.changedTouches[0].clientX;
+            clientY = evt.changedTouches[0].clientY;
+        } else {
+            // Mouse event
+            clientX = evt.clientX;
+            clientY = evt.clientY;
+        }
+        
         return {
-            x: (evt.clientX - rect.left) * scaleX,
-            y: (evt.clientY - rect.top) * scaleY
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
         };
     }
 
-    // Check if mouse is over logo, text, or resize handles
+    // Check if mouse/touch is over logo, text, or resize handles
     function checkHitTest(mouseX, mouseY) {
         const state = getCurrentState();
         const scale = tshirtSize / 100;
@@ -719,7 +747,7 @@
             const logoH = state.logoHeight;
             const logoLeft = state.logoX - logoW / 2;
             const logoTop = state.logoY - logoH / 2;
-            const handleHitbox = 12; // hitbox radius
+            const handleHitbox = 15; // Larger hitbox for touch devices
             
             // Handles positions
             const handles = [
@@ -775,8 +803,9 @@
         return null;
     }
 
-    // Mouse event handlers
-    function handleMouseDown(evt) {
+    // Mouse/Touch event handlers
+    function handleStart(evt) {
+        evt.preventDefault(); // Prevent scrolling on touch
         const canvas = evt.target;
         const mousePos = getMousePos(canvas, evt);
         const hitTest = checkHitTest(mousePos.x, mousePos.y);
@@ -807,7 +836,8 @@
         }
     }
 
-    function handleMouseMove(evt) {
+    function handleMove(evt) {
+        evt.preventDefault(); // Prevent scrolling on touch
         const canvas = evt.target;
         const mousePos = getMousePos(canvas, evt);
         const scale = tshirtSize / 100;
@@ -847,16 +877,6 @@
                 newHeight = Math.max(30, startHeight - dy);
             }
 
-            // If shift pressed and single-edge handle, keep aspect ratio
-            if (evt.shiftKey && ['n','s','e','w'].includes(resizeHandle)) {
-                const aspect = startWidth / startHeight;
-                if (resizeHandle === 'n' || resizeHandle === 's') {
-                    newWidth = Math.round(newHeight * aspect);
-                } else {
-                    newHeight = Math.round(newWidth / aspect);
-                }
-            }
-
             updateCurrentState({ logoWidth: newWidth, logoHeight: newHeight });
             
             // Update slider to average size
@@ -885,8 +905,34 @@
             }
             
             redrawAll();
-        } else {
-            // Update cursor based on hover
+        } else if (!isDragging && !isResizing) {
+            // Update cursor based on hover (mouse only)
+            if (!evt.touches) {
+                const hitTest = checkHitTest(mousePos.x, mousePos.y);
+                if (hitTest) {
+                    if (hitTest.resize) {
+                        canvas.style.cursor = getResizeCursor(hitTest.resize);
+                    } else {
+                        canvas.style.cursor = 'grab';
+                    }
+                } else {
+                    canvas.style.cursor = 'default';
+                }
+            }
+        }
+    }
+
+    function handleEnd(evt) {
+        isDragging = false;
+        isResizing = false;
+        dragTarget = null;
+        resizeHandle = null;
+        evt.target.style.cursor = 'default';
+        
+        // Update cursor on hover (mouse only)
+        if (!evt.touches && !evt.changedTouches) {
+            const canvas = evt.target;
+            const mousePos = getMousePos(canvas, evt);
             const hitTest = checkHitTest(mousePos.x, mousePos.y);
             if (hitTest) {
                 if (hitTest.resize) {
@@ -894,28 +940,6 @@
                 } else {
                     canvas.style.cursor = 'grab';
                 }
-            } else {
-                canvas.style.cursor = 'default';
-            }
-        }
-    }
-
-    function handleMouseUp(evt) {
-        isDragging = false;
-        isResizing = false;
-        dragTarget = null;
-        resizeHandle = null;
-        evt.target.style.cursor = 'default';
-        
-        // Update cursor on hover
-        const canvas = evt.target;
-        const mousePos = getMousePos(canvas, evt);
-        const hitTest = checkHitTest(mousePos.x, mousePos.y);
-        if (hitTest) {
-            if (hitTest.resize) {
-                canvas.style.cursor = getResizeCursor(hitTest.resize);
-            } else {
-                canvas.style.cursor = 'grab';
             }
         }
     }
@@ -934,12 +958,19 @@
         return cursors[handle] || 'default';
     }
 
-    // Add mouse event listeners to both canvases
+    // Add mouse and touch event listeners to both canvases
     [frontCanvas, backCanvas].forEach(canvas => {
-        canvas.addEventListener('mousedown', handleMouseDown);
-        canvas.addEventListener('mousemove', handleMouseMove);
-        canvas.addEventListener('mouseup', handleMouseUp);
-        canvas.addEventListener('mouseleave', handleMouseUp);
+        // Mouse events
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('mouseleave', handleEnd);
+        
+        // Touch events - with passive: false to allow preventDefault
+        canvas.addEventListener('touchstart', handleStart, { passive: false });
+        canvas.addEventListener('touchmove', handleMove, { passive: false });
+        canvas.addEventListener('touchend', handleEnd);
+        canvas.addEventListener('touchcancel', handleEnd);
     });
 
     // View switching
