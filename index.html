@@ -1186,51 +1186,57 @@
 
     // Share via WhatsApp Web
     const shareBtn = document.getElementById('shareBtn');
-    if (shareBtn) {
-        shareBtn.addEventListener('click', async function() {
-            const button = this;
-            button.disabled = true;
-            const originalText = button.innerHTML;
-            button.innerHTML = '⏳ Preparing images...';
+if (shareBtn) {
+    shareBtn.addEventListener('click', async function() {
+        const button = this;
+        button.disabled = true;
+        const originalText = button.innerHTML;
+        button.innerHTML = '⏳ Preparing images...';
 
-            try {
-                // Convert both canvases to base64
-                const frontDataUrl = frontCanvas.toDataURL('image/png');
-                const backDataUrl = backCanvas.toDataURL('image/png');
-                
-                // Trigger downloads (so user has the files)
-                const timestamp = Date.now();
-                const linkFront = document.createElement('a');
-                linkFront.download = `tshirt-front-${timestamp}.png`;
-                linkFront.href = frontDataUrl;
-                linkFront.click();
+        try {
+            const frontDataUrl = frontCanvas.toDataURL('image/png');
+            const backDataUrl = backCanvas.toDataURL('image/png');
 
-                setTimeout(() => {
-                    const linkBack = document.createElement('a');
-                    linkBack.download = `tshirt-back-${timestamp}.png`;
-                    linkBack.href = backDataUrl;
-                    linkBack.click();
-                }, 300);
+            const timestamp = Date.now();
+            const linkFront = document.createElement('a');
+            linkFront.download = `tshirt-front-${timestamp}.png`;
+            linkFront.href = frontDataUrl;
+            linkFront.click();
 
-                // Open WhatsApp Web to specific number with message
-                setTimeout(() => {
-                    const phoneNumber = '918383933578'; // India country code + number
-                    const message = encodeURIComponent('Here are the t-shirt design images! 👕✨\n\nFront and back designs:');
-                    window.open(`https://web.whatsapp.com/send?phone=${phoneNumber}&text=${message}`, '_blank');
+            setTimeout(() => {
+                const linkBack = document.createElement('a');
+                linkBack.download = `tshirt-back-${timestamp}.png`;
+                linkBack.href = backDataUrl;
+                linkBack.click();
+            }, 300);
 
-                    alert('✅ Images downloaded successfully!\n\n📱 WhatsApp Web is opening...\n\n📎 To send:\n1. Wait for the chat to load\n2. Click the paperclip (📎) icon\n3. Choose "Photos & Videos"\n4. Select the 2 downloaded t-shirt images\n5. Click Send!');
-                }, 800);
-            } catch (error) {
-                console.error('Share error:', error);
-                alert('❌ Error preparing images. Please try downloading manually.');
-            } finally {
-                setTimeout(() => {
-                    button.disabled = false;
-                    button.innerHTML = originalText || '📤 Share via WhatsApp';
-                }, 1600);
-            }
-        });
-    }
+            // ✅ FIXED WHATSAPP LINK (WORKS ON MOBILE & DESKTOP)
+            setTimeout(() => {
+                const phoneNumber = '918383933578';
+                const message = encodeURIComponent(
+                    'Here are my t-shirt design images! 👕✨\n\nPlease find the front and back designs attached.'
+                );
+
+                window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+
+                alert(
+                    '✅ Images downloaded!\n\n📱 WhatsApp is opening...\n\n📎 To send images:\n1. Tap the attachment icon\n2. Select Photos\n3. Choose the 2 images\n4. Send ✅'
+                );
+
+            }, 800);
+
+        } catch (error) {
+            console.error('Share error:', error);
+            alert('❌ Error preparing images. Please try again.');
+        } finally {
+            setTimeout(() => {
+                button.disabled = false;
+                button.innerHTML = originalText || '📤 Share via WhatsApp';
+            }, 1600);
+        }
+    });
+}
+
 </script>
 
 </body>
