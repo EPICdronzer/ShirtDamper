@@ -685,11 +685,27 @@
                 ctx.strokeRect(textX - textWidth/2 - 10, textY - textHeight/2 - 5, textWidth + 20, textHeight + 10);
                 ctx.setLineDash([]);
                 
-                // Corner handles
+                // Corner handles for resizing
                 ctx.fillStyle = '#10b981';
-                const handleSize = 8;
-                ctx.fillRect(textX - textWidth/2 - 10 - handleSize/2, textY - textHeight/2 - 5 - handleSize/2, handleSize, handleSize);
-                ctx.fillRect(textX + textWidth/2 + 10 - handleSize/2, textY - textHeight/2 - 5 - handleSize/2, handleSize, handleSize);
+                const handleSize = 10;
+                const textLeft = textX - textWidth/2 - 10;
+                const textTop = textY - textHeight/2 - 5;
+                const textRight = textLeft + textWidth + 20;
+                const textBottom = textTop + textHeight + 10;
+                
+                // Draw 4 corner handles
+                ctx.fillRect(textLeft - handleSize/2, textTop - handleSize/2, handleSize, handleSize);
+                ctx.fillRect(textRight - handleSize/2, textTop - handleSize/2, handleSize, handleSize);
+                ctx.fillRect(textLeft - handleSize/2, textBottom - handleSize/2, handleSize, handleSize);
+                ctx.fillRect(textRight - handleSize/2, textBottom - handleSize/2, handleSize, handleSize);
+                
+                // Handle outlines for better visibility
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(textLeft - handleSize/2, textTop - handleSize/2, handleSize, handleSize);
+                ctx.strokeRect(textRight - handleSize/2, textTop - handleSize/2, handleSize, handleSize);
+                ctx.strokeRect(textLeft - handleSize/2, textBottom - handleSize/2, handleSize, handleSize);
+                ctx.strokeRect(textRight - handleSize/2, textBottom - handleSize/2, handleSize, handleSize);
             }
         }
         
@@ -741,7 +757,49 @@
         const transformedX = (mouseX - 200) / scale + 200;
         const transformedY = (mouseY - 250) / scale + 250;
         
-        // Check logo resize handles first
+        // Check text resize handles first (only if text exists)
+        if (state.text) {
+            const ctx = (activeView === 'front') ? frontCtx : backCtx;
+            ctx.font = `bold ${state.fontSize}px ${state.fontStyle}`;
+            const textMetrics = ctx.measureText(state.text);
+            const textWidth = textMetrics.width;
+            const textHeight = state.fontSize;
+            
+            const textLeft = state.textX - textWidth / 2 - 10;
+            const textTop = state.textY - textHeight / 2 - 5;
+            const textRight = textLeft + textWidth + 20;
+            const textBottom = textTop + textHeight + 10;
+            
+            const handleHitbox = 15; // Larger hitbox for touch devices
+            
+            // Text resize handles (4 corners)
+            const textHandles = [
+                { name: 'nw', x: textLeft, y: textTop },
+                { name: 'ne', x: textRight, y: textTop },
+                { name: 'sw', x: textLeft, y: textBottom },
+                { name: 'se', x: textRight, y: textBottom }
+            ];
+            
+            for (const h of textHandles) {
+                if (Math.abs(transformedX - h.x) <= handleHitbox && Math.abs(transformedY - h.y) <= handleHitbox) {
+                    return { 
+                        target: 'text', 
+                        resize: h.name, 
+                        x: state.textX, 
+                        y: state.textY, 
+                        fontSize: state.fontSize
+                    };
+                }
+            }
+            
+            // Check text body for dragging (only if not on a handle)
+            if (transformedX >= textLeft && transformedX <= textRight &&
+                transformedY >= textTop && transformedY <= textBottom) {
+                return { target: 'text', x: state.textX, y: state.textY };
+            }
+        }
+        
+        // Check logo resize handles
         if (state.logo) {
             const logoW = state.logoWidth;
             const logoH = state.logoHeight;
@@ -781,25 +839,6 @@
             }
         }
         
-        // Check text
-        if (state.text) {
-            const ctx = (activeView === 'front') ? frontCtx : backCtx;
-            ctx.font = `bold ${state.fontSize}px ${state.fontStyle}`;
-            const textMetrics = ctx.measureText(state.text);
-            const textWidth = textMetrics.width;
-            const textHeight = state.fontSize;
-            
-            const textLeft = state.textX - textWidth / 2 - 10;
-            const textTop = state.textY - textHeight / 2 - 5;
-            const textRight = textLeft + textWidth + 20;
-            const textBottom = textTop + textHeight + 10;
-            
-            if (transformedX >= textLeft && transformedX <= textRight &&
-                transformedY >= textTop && transformedY <= textBottom) {
-                return { target: 'text', x: state.textX, y: state.textY };
-            }
-        }
-        
         return null;
     }
 
@@ -822,8 +861,12 @@
                 resizeHandle = hitTest.resize;
                 resizeStartX = transformedX;
                 resizeStartY = transformedY;
-                startWidth = hitTest.width;
-                startHeight = hitTest.height;
+                if (hitTest.target === 'logo') {
+                    startWidth = hitTest.width;
+                    startHeight = hitTest.height;
+                } else if (hitTest.target === 'text') {
+                    startWidth = hitTest.fontSize; // Store fontSize in startWidth for text
+                }
                 canvas.style.cursor = getResizeCursor(hitTest.resize);
             } else {
                 // Drag mode
@@ -886,6 +929,32 @@
                 slider.value = avgSize;
                 const display = document.getElementById('logoSizeValue');
                 if (display) display.textContent = avgSize;
+            }
+            
+            redrawAll();
+        } else if (isResizing && dragTarget === 'text') {
+            // Text resizing - calculate distance from center
+            const state = getCurrentState();
+            const startFontSize = startWidth; // We stored fontSize in startWidth
+            const centerX = state.textX;
+            const centerY = state.textY;
+            
+            // Calculate distance from center to mouse
+            const startDist = Math.sqrt((resizeStartX - centerX) ** 2 + (resizeStartY - centerY) ** 2);
+            const currentDist = Math.sqrt((transformedX - centerX) ** 2 + (transformedY - centerY) ** 2);
+            
+            // Scale font size based on distance change
+            const scale = currentDist / startDist;
+            const newFontSize = Math.max(16, Math.min(100, Math.round(startFontSize * scale)));
+            
+            updateCurrentState({ fontSize: newFontSize });
+            
+            // Update slider
+            const slider = document.getElementById('fontSize');
+            if (slider) {
+                slider.value = newFontSize;
+                const display = document.getElementById('fontSizeValue');
+                if (display) display.textContent = newFontSize;
             }
             
             redrawAll();
@@ -1186,57 +1255,51 @@
 
     // Share via WhatsApp Web
     const shareBtn = document.getElementById('shareBtn');
-if (shareBtn) {
-    shareBtn.addEventListener('click', async function() {
-        const button = this;
-        button.disabled = true;
-        const originalText = button.innerHTML;
-        button.innerHTML = '⏳ Preparing images...';
+    if (shareBtn) {
+        shareBtn.addEventListener('click', async function() {
+            const button = this;
+            button.disabled = true;
+            const originalText = button.innerHTML;
+            button.innerHTML = '⏳ Preparing images...';
 
-        try {
-            const frontDataUrl = frontCanvas.toDataURL('image/png');
-            const backDataUrl = backCanvas.toDataURL('image/png');
+            try {
+                // Convert both canvases to base64
+                const frontDataUrl = frontCanvas.toDataURL('image/png');
+                const backDataUrl = backCanvas.toDataURL('image/png');
+                
+                // Trigger downloads (so user has the files)
+                const timestamp = Date.now();
+                const linkFront = document.createElement('a');
+                linkFront.download = `tshirt-front-${timestamp}.png`;
+                linkFront.href = frontDataUrl;
+                linkFront.click();
 
-            const timestamp = Date.now();
-            const linkFront = document.createElement('a');
-            linkFront.download = `tshirt-front-${timestamp}.png`;
-            linkFront.href = frontDataUrl;
-            linkFront.click();
+                setTimeout(() => {
+                    const linkBack = document.createElement('a');
+                    linkBack.download = `tshirt-back-${timestamp}.png`;
+                    linkBack.href = backDataUrl;
+                    linkBack.click();
+                }, 300);
 
-            setTimeout(() => {
-                const linkBack = document.createElement('a');
-                linkBack.download = `tshirt-back-${timestamp}.png`;
-                linkBack.href = backDataUrl;
-                linkBack.click();
-            }, 300);
+                // Open WhatsApp Web to specific number with message
+                setTimeout(() => {
+                    const phoneNumber = '918383933578'; // India country code + number
+                    const message = encodeURIComponent('Here are the t-shirt design images! 👕✨\n\nFront and back designs:');
+                    window.open(`https://web.whatsapp.com/send?phone=${phoneNumber}&text=${message}`, '_blank');
 
-            // ✅ FIXED WHATSAPP LINK (WORKS ON MOBILE & DESKTOP)
-            setTimeout(() => {
-                const phoneNumber = '918383933578';
-                const message = encodeURIComponent(
-                    'Here are my t-shirt design images! 👕✨\n\nPlease find the front and back designs attached.'
-                );
-
-                window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
-
-                alert(
-                    '✅ Images downloaded!\n\n📱 WhatsApp is opening...\n\n📎 To send images:\n1. Tap the attachment icon\n2. Select Photos\n3. Choose the 2 images\n4. Send ✅'
-                );
-
-            }, 800);
-
-        } catch (error) {
-            console.error('Share error:', error);
-            alert('❌ Error preparing images. Please try again.');
-        } finally {
-            setTimeout(() => {
-                button.disabled = false;
-                button.innerHTML = originalText || '📤 Share via WhatsApp';
-            }, 1600);
-        }
-    });
-}
-
+                    alert('✅ Images downloaded successfully!\n\n📱 WhatsApp Web is opening...\n\n📎 To send:\n1. Wait for the chat to load\n2. Click the paperclip (📎) icon\n3. Choose "Photos & Videos"\n4. Select the 2 downloaded t-shirt images\n5. Click Send!');
+                }, 800);
+            } catch (error) {
+                console.error('Share error:', error);
+                alert('❌ Error preparing images. Please try downloading manually.');
+            } finally {
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerHTML = originalText || '📤 Share via WhatsApp';
+                }, 1600);
+            }
+        });
+    }
 </script>
 
 </body>
