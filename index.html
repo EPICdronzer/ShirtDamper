@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio - Designer/Developer</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💻</text></svg>">
-    <style>
+    <title>Portfolio - Beast Gfx</title>
+<style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 
         * {
@@ -1101,6 +1100,7 @@
                 console.log('Profile image ID:', profile.profileImageId);
                 
                 tryLoadImage(profile.profileImageLink, profileImageContainer, profile.profileImageId);
+                setDynamicFavicon(profile.profileImageLink, profile.profileImageId);
             } else {
                 console.log('No profile image link found in data');
                 profileImageContainer.innerHTML = '<img src="https://via.placeholder.com/350?text=No+Image" class="hero-image" alt="Placeholder">';
@@ -1108,6 +1108,82 @@
             
             // NEW: Render Social Links
             renderSocialLinks(profile);
+        }
+
+        function setDynamicFavicon(primaryUrl, fileId) {
+            // Use Canvas to convert the image to a data URL for the favicon
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            // Try multiple URL formats
+            const urls = [
+                fileId ? `https://drive.google.com/uc?export=view&id=${fileId}` : null,
+                fileId ? `https://lh3.googleusercontent.com/d/${fileId}` : null,
+                primaryUrl
+            ].filter(Boolean);
+            
+            let currentIndex = 0;
+            
+            function tryNextUrl() {
+                if (currentIndex >= urls.length) {
+                    console.error('All favicon URL attempts failed');
+                    return;
+                }
+                
+                const url = urls[currentIndex];
+                console.log(`Trying favicon URL (${currentIndex + 1}/${urls.length}):`, url);
+                
+                img.src = url;
+                currentIndex++;
+            }
+            
+            img.onload = function() {
+                try {
+                    // Create canvas and draw image
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 32;
+                    canvas.height = 32;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, 32, 32);
+                    
+                    // Convert to data URL
+                    const faviconUrl = canvas.toDataURL('image/png');
+                    
+                    // Update all favicon links
+                    const head = document.head;
+                    const existingFavicon = document.getElementById('favicon');
+                    
+                    if (existingFavicon) {
+                        existingFavicon.href = faviconUrl;
+                    }
+                    
+                    // Also create additional favicon links for compatibility
+                    const links = document.querySelectorAll('link[rel*="icon"]');
+                    links.forEach(link => {
+                        if (link.id !== 'favicon') {
+                            link.href = faviconUrl;
+                        }
+                    });
+                    
+                    console.log('✓ Favicon updated successfully');
+                } catch (e) {
+                    console.error('Failed to create favicon from image:', e);
+                    console.log('Trying direct URL method instead...');
+                    
+                    // Fallback: use URL directly
+                    const existingFavicon = document.getElementById('favicon');
+                    if (existingFavicon) {
+                        existingFavicon.href = img.src + '?v=' + Date.now();
+                    }
+                }
+            };
+            
+            img.onerror = function() {
+                console.error('Failed to load favicon from:', img.src);
+                tryNextUrl();
+            };
+            
+            tryNextUrl();
         }
 
         // NEW FUNCTION: To render the social links
