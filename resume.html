@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Sync Portfolio from Google Drive</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .setup-banner {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .setup-banner h2 {
+            margin-bottom: 10px;
+        }
+
+        .setup-banner button {
+            background: white;
+            color: #f5576c;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .setup-banner button:hover {
+            transform: scale(1.05);
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2em;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #e6f0ff;
+            padding: 10px 20px;
+            border-radius: 8px;
+        }
+
+        .sync-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #48bb78;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .profile-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-content {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .profile-image {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid #667eea;
+        }
+
+        .profile-placeholder {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #a0aec0;
+            border: 5px solid #667eea;
+        }
+
+        .profile-info h2 {
+            font-size: 2.5em;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .profile-info h3 {
+            font-size: 1.3em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .profile-info p {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .section-title {
+            color: white;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .project-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .project-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .project-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .project-content {
+            padding: 20px;
+        }
+
+        .project-title {
+            font-size: 1.5em;
+            color: #2d3748;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .project-description {
+            color: #4a5568;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .tech-tag {
+            background: #e6f0ff;
+            color: #667eea;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .project-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .project-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 60px;
+            border-radius: 15px;
+            text-align: center;
+            grid-column: 1 / -1;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .modal-content h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+
+        .instruction-step {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .instruction-step h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .instruction-step p {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .folder-structure {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin: 10px 0;
+            white-space: pre;
+        }
+
+        @media (max-width: 768px) {
+            .profile-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="setupBanner" class="setup-banner">
+            <h2>🚀 Welcome to Auto-Sync Portfolio!</h2>
+            <p>Connect your Google Drive folder via Apps Script for instant updates</p>
+            <button onclick="openSetupModal()">⚙️ View Setup Instructions</button>
+        </div>
+
+        <header>
+            <div class="header-content">
+                <h1>📁 My Portfolio</h1>
+                <div class="sync-status">
+                    <div class="sync-indicator"></div>
+                    <span>Auto-syncing from Drive</span>
+                </div>
+            </div>
+        </header>
+
+        <div id="loadingIndicator" class="loading" style="display: none;">
+            <p>🔄 Loading your portfolio from Google Drive...</p>
+        </div>
+
+        <div class="profile-section" id="profileSection">
+            <div class="profile-content">
+                <div id="profileImageContainer">
+                    <div class="profile-placeholder">👤</div>
+                </div>
+                <div class="profile-info">
+                    <h2 id="profileName">Your Name</h2>
+                    <h3 id="profileTitle">Your Title</h3>
+                    <p id="profileBio">Your bio will appear here once the Apps Script connection is successful.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="projects-section">
+            <h2 class="section-title">My Projects</h2>
+            <div id="projectsGrid" class="projects-grid">
+                <div class="empty-state">
+                    <div style="font-size: 64px; margin-bottom: 20px;">📦</div>
+                    <h3>Awaiting Sync</h3>
+                    <p style="color: #718096; margin-top: 10px;">Please configure the Apps Script URL in the JavaScript code.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="setupModal" class="modal">
+        <div class="modal-content">
+            <h2>📂 How to Setup Your Auto-Sync Portfolio (Apps Script)</h2>
+            
+            <div class="instruction-step">
+                <h3>Step 1: Set up Google Drive Structure</h3>
+                <p>Create these files in a single main folder called **MyPortfolio**:</p>
+                <div class="folder-structure">
+📁 MyPortfolio (Share: Anyone with link can view)
+├── 📄 profile.txt (For your name/bio)
+├── 🖼️ profile-photo.jpg (Optional)
+├── 📄 PortfolioProjects (Google Sheet)
+└── 📁 Images (Share: Anyone with link can view)
+    ├── 🖼️ image1.jpg
+    └── 🖼️ screenshot.png
+                </div>
+            </div>
+
+            <div class="instruction-step">
+                <h3>Step 2: Create the Apps Script "Backend"</h3>
+                <p>In the MyPortfolio folder, create a new **Google Apps Script** (New > More > Google Apps Script). Replace the code with the script provided in the response.</p>
+                <p>You MUST replace the **`PORTFOLIO_FOLDER_ID`** in the script with the ID of your main **MyPortfolio** folder.</p>
+            </div>
+
+            <div class="instruction-step">
+                <h3>Step 3: Deploy the Script as a Web App (API)</h3>
+                <p>In the Apps Script Editor, click **Deploy** > **New Deployment**:</p>
+                <ul>
+                    <li>**Type:** Web App</li>
+                    <li>**Execute as:** Me</li>
+                    <li>**Who has access:** Anyone</li>
+                </ul>
+                <p>Click **Deploy** and **COPY THE WEB APP URL**.</p>
+            </div>
+
+            <div class="instruction-step">
+                <h3>Step 4: Update the HTML Code (Crucial)</h3>
+                <p>Paste the **Web App URL** you copied into the JavaScript section of this HTML file, replacing the placeholder:</p>
+                <div class="code-block">
+let portfolioConfig = {
+    webAppUrl: 'YOUR_COPIED_APPS_SCRIPT_URL_HERE'
+};
+                </div>
+                <p>Once updated, refresh this page.</p>
+            </div>
+            
+            <button onclick="closeSetupModal()" style="margin-top: 20px; width: 100%; background: #718096; color: white;">Close Instructions</button>
+        </div>
+    </div>
+
+    <script>
+        let portfolioConfig = {
+            webAppUrl: 'https://script.google.com/macros/s/AKfycbyYIWuJP0zVLWcOdsN-PTr48dYjPf6DSCHALlonfFxR0cLtNtZyMEyx5M1g8gjJMins/exec' 
+        };
+
+        window.onload = function() {
+            if (portfolioConfig.webAppUrl.includes('PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE')) {
+                document.getElementById('setupBanner').style.display = 'block';
+                document.querySelector('.sync-status span').textContent = 'Setup Required';
+                document.querySelector('.sync-indicator').style.background = '#f6ad55';
+                openSetupModal();
+            } else {
+                document.getElementById('setupBanner').style.display = 'none';
+                loadPortfolioFromDrive();
+            }
+        };
+
+        function openSetupModal() {
+            document.getElementById('setupModal').classList.add('active');
+        }
+
+        function closeSetupModal() {
+            document.getElementById('setupModal').classList.remove('active');
+        }
+
+        async function loadPortfolioFromDrive() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const syncStatusText = document.querySelector('.sync-status span');
+            const syncIndicator = document.querySelector('.sync-indicator');
+            
+            loadingIndicator.style.display = 'block';
+            syncStatusText.textContent = 'Syncing...';
+            syncIndicator.style.background = '#f6ad55'; 
+
+            try {
+                const response = await fetch(portfolioConfig.webAppUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                console.log('Fetched data:', data); // Debug log
+                console.log('Projects with images:', data.projects);
+                
+                // Render Profile
+                const profileData = {
+                    name: data.profile.name || 'Your Name',
+                    title: data.profile.title || 'Your Title',
+                    bio: data.profile.bio || 'Your bio will appear here once you successfully link your profile.txt in Drive.',
+                    profileImage: data.profile.profileImageLink || null 
+                };
+                renderProfile(profileData);
+                
+                // Render Projects - FIXED to get image IDs from Images folder
+                const projects = await getProjectsWithImages(data.projects, data.imagesFolderId);
+                renderProjects(projects);
+
+                syncStatusText.textContent = `Synced: ${new Date().toLocaleTimeString()}`;
+                syncIndicator.style.background = '#48bb78';
+
+            } catch (error) {
+                console.error('Error fetching portfolio:', error);
+                syncStatusText.textContent = 'Sync Error!';
+                syncIndicator.style.background = '#f5576c';
+                alert(`Failed to load portfolio: ${error.message}. Please check your Google Apps Script URL, deployment, and Drive folder sharing settings.`);
+                
+                renderProfile({ name: 'Sync Error', title: 'Check Console for Details', bio: 'Could not load data from Google Drive API.' });
+                renderProjects([]);
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // Process projects - imageUrl is now provided by the API
+        async function getProjectsWithImages(projects, imagesFolderId) {
+            return projects.map(p => ({
+                title: p.title,
+                description: p.description,
+                technologies: p.technologies,
+                link: p.link,
+                github: p.github,
+                imageUrl: p.imageUrl || null  // Use the imageUrl from API
+            }));
+        }
+
+        function renderProfile(data) {
+            document.getElementById('profileName').textContent = data.name;
+            document.getElementById('profileTitle').textContent = data.title;
+            document.getElementById('profileBio').textContent = data.bio;
+            
+            const profileImageContainer = document.getElementById('profileImageContainer');
+            if (data.profileImage) {
+                const img = document.createElement('img');
+                img.src = data.profileImage;
+                img.className = 'profile-image';
+                img.alt = 'Profile Photo';
+                
+                img.onerror = function() {
+                    console.error('Failed to load profile image:', data.profileImage);
+                    profileImageContainer.innerHTML = '<div class="profile-placeholder">⚠️</div>';
+                };
+                
+                profileImageContainer.innerHTML = '';
+                profileImageContainer.appendChild(img);
+            } else {
+                profileImageContainer.innerHTML = '<div class="profile-placeholder">👤</div>';
+            }
+        }
+
+        function renderProjects(projects) {
+            const grid = document.getElementById('projectsGrid');
+            
+            if (!projects || projects.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 64px; margin-bottom: 20px;">📦</div>
+                        <h3>No projects found</h3>
+                        <p style="color: #718096; margin-top: 10px;">Add rows to your PortfolioProjects Google Sheet!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = projects.map(project => `
+                <div class="project-card">
+                    ${project.imageUrl ? 
+                        `<img src="${project.imageUrl}" class="project-image" alt="${project.title}" onerror="this.src='https://via.placeholder.com/400x200?text=No+Image';">` : 
+                        `<img src="https://via.placeholder.com/400x200?text=No+Image" class="project-image" alt="Placeholder">`}
+                    <div class="project-content">
+                        <h3 class="project-title">${project.title}</h3>
+                        <p class="project-description">${project.description}</p>
+                        ${project.technologies ? `
+                            <div class="tech-tags">
+                                ${project.technologies.split(',').map(tech => 
+                                    `<span class="tech-tag">${tech.trim()}</span>`
+                                ).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="project-links">
+                            ${project.link ? `<a href="${project.link}" target="_blank" class="project-link">🔗 Demo</a>` : ''}
+                            ${project.github ? `<a href="${project.github}" target="_blank" class="project-link">💻 Code</a>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
